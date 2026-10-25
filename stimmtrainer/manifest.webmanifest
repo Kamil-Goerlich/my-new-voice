@@ -1,0 +1,10 @@
+{
+  "name": "Stimmtrainer",
+  "short_name": "Stimmtrainer",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F3F6F8",
+  "theme_color": "#F3F6F8",
+  "lang": "de",
+  "icons": [{ "src": "icon.png", "sizes": "1024x1024", "type": "image/png" }]
+}

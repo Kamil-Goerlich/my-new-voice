@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stimmtrainer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stimmtrainer">
+<meta name="theme-color" content="#F3F6F8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Atkinson+Hyperlegible+Mono:wght@400;600&display=swap">
+<style>
+/* Ein Wort pro Karte, große Daumen-Knöpfe, Sichern-Bereich unten */
+:root{
+  --bg:#F3F6F8; --surface:#FFFFFF; --fg:#16232E; --muted:#5B6B78; --line:#D7E0E7;
+  --accent:#1F6F8B; --accent-fg:#FFFFFF; --rec:#C8382F; --ok:#2F7D4F; --warn:#9A5B00;
+  --f-body:"Atkinson Hyperlegible",system-ui,sans-serif;
+  --f-mono:"Atkinson Hyperlegible Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F171D; --surface:#17222A; --fg:#E6EEF3; --muted:#93A4B1; --line:#2A3943;
+  --accent:#5AB3D1; --accent-fg:#0B1419; --rec:#F06A5F; --ok:#5CC48A; --warn:#F0B35A; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:30rem;margin:0 auto;padding-block:14px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+h1{font-size:1.15rem;margin:0}
+.status{font-size:.8rem;color:var(--muted);text-align:right}
+.status.warn{color:var(--warn);font-weight:700}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.cat{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nr{font-family:var(--f-mono);color:var(--muted);font-size:.9rem}
+.word{font-size:clamp(2.4rem,11vw,3.4rem);font-weight:700;line-height:1.1;text-wrap:balance;overflow-wrap:break-word;max-width:100%}
+.takes{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center}
+.takes span{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent)}
+.takes span.on{background:var(--accent)}
+.takes-l{font-size:.8rem;color:var(--muted)}
+.rec{width:104px;height:104px;border-radius:50%;border:0;background:var(--rec);color:#fff;font:700 1.05rem var(--f-body);align-self:center;cursor:pointer;display:grid;place-items:center}
+.rec.on{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px color-mix(in srgb,var(--rec) 25%,transparent)}}
+@media (prefers-reduced-motion:reduce){.rec.on{animation:none;outline:4px solid var(--rec);outline-offset:4px}}
+.timer{text-align:center;font-family:var(--f-mono);color:var(--muted);min-height:1.4em}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>button{flex:1 1 7rem}
+button{font:700 1rem var(--f-body);padding:15px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.msg{font-size:.95rem;color:var(--muted);text-align:center;min-height:1.4em}
+.msg.err{color:var(--rec)}
+details,.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+summary{cursor:pointer;font-weight:700}
+.box h2{font-size:1rem;margin:0 0 6px}
+.box p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
+.add{display:flex;gap:8px;margin-top:10px}
+.add input{flex:1;min-width:0;font:1rem var(--f-body);padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+ul{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:6px;max-height:18rem;overflow:auto}
+li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--f-mono);font-size:.85rem}
+li span{min-width:0;overflow-wrap:anywhere}
+li .b{display:flex;gap:6px;flex:none}
+li button{padding:7px 10px;font-size:.85rem}
+#undo.armed,li button.armed{background:var(--rec);color:#fff;border-color:var(--rec)}
+li .done{color:var(--ok)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:.95rem;z-index:9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Stimmtrainer</h1><span class="status" id="status"></span></header>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="meta"><span id="count"></span><span id="pos"></span></div>
+
+  <section class="card" aria-live="polite">
+    <div class="cat" id="cat"></div>
+    <div class="nr" id="nr"></div>
+    <div class="word" id="word"></div>
+    <div class="takes" id="takes"></div>
+    <div class="takes-l" id="takesl"></div>
+  </section>
+
+  <button class="rec" id="rec" aria-label="Aufnahme starten">Aufnahme</button>
+  <div class="timer" id="timer"></div>
+
+  <div class="row">
+    <button id="play" disabled>Anhören</button>
+    <button id="redo" disabled>Verwerfen</button>
+  </div>
+  <button class="primary" id="save" disabled>Speichern</button>
+  <button id="undo" hidden>Letzte Aufnahme verwerfen</button>
+  <div class="row">
+    <button id="prev">Zurück</button>
+    <button id="skip">Überspringen</button>
+    <button id="next">Weiter</button>
+  </div>
+  <div class="msg" id="msg"></div>
+
+  <section class="box">
+    <h2>In iCloud sichern</h2>
+    <p id="expinfo">Die Aufnahmen liegen erst nur hier im Browser. Sichere sie nach jeder Sitzung in den Ordner my_new_voice.</p>
+    <div class="row">
+      <button id="prepNew" class="primary">Neue sichern</button>
+      <button id="prepAll">Alles sichern</button>
+    </div>
+    <div class="row" id="shareRow" hidden style="margin-top:10px">
+      <button id="share" class="ok">Jetzt in Dateien sichern</button>
+    </div>
+  </section>
+
+  <details>
+    <summary>Eigenes Wort hinzufügen</summary>
+    <div class="add"><input id="newword" placeholder="z. B. einen Namen" autocomplete="off"><button id="addbtn">Hinzufügen</button></div>
+  </details>
+  <details>
+    <summary>Gespeicherte Aufnahmen (<span id="nfiles">0</span>)</summary>
+    <ul id="files"></ul>
+  </details>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(function(){
+const CATS=[
+["Grundwörter","ja, nein, bitte, danke, hallo, tschüss, guten Morgen, gute Nacht, Entschuldigung, okay, vielleicht, genau, gut, schlecht, Moment, warte, stopp, noch mal, langsam, fertig"],
+["Fragewörter","wer, was, wann, wo, wie, warum, welche, wie viel, woher, wohin"],
+["Personen","ich, du, er, sie, wir, ihr, mein, dein, Mama, Papa, Frau, Mann, Kind, Sohn, Tochter, Bruder, Schwester, Freund, Freundin, Arzt"],
+["Tätigkeiten","haben, sein, machen, gehen, kommen, sagen, sehen, hören, essen, trinken, schlafen, brauchen, wollen, können, möchten, helfen, rufen, warten, zeigen, nehmen, geben, holen, bringen, fahren, arbeiten, spielen, lesen, schreiben, wissen, verstehen, anrufen, kaufen, bezahlen, öffnen, schließen"],
+["Essen & Trinken","Wasser, Kaffee, Tee, Milch, Saft, Bier, Brot, Brötchen, Butter, Käse, Wurst, Fleisch, Fisch, Ei, Obst, Apfel, Banane, Gemüse, Kartoffeln, Nudeln, Reis, Suppe, Pizza, Kuchen, Zucker, Salz, Frühstück, Mittagessen, Abendessen, Hunger, Durst"],
+["Zahlen & Geld","eins, zwei, drei, vier, fünf, sechs, sieben, acht, neun, zehn, zwanzig, fünfzig, hundert, tausend, halb, Euro"],
+["Zeit","heute, morgen, gestern, jetzt, später, gleich, bald, immer, nie, oft, früh, spät, Uhr, Minute, Stunde, Tag, Woche, Monat, Jahr, Abend, Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag, Wochenende"],
+["Befinden & Körper","müde, krank, Schmerzen, kalt, warm, heiß, traurig, froh, Angst, ruhig, Kopf, Bauch, Rücken, Hand, Fuß, Medikament, Toilette"],
+["Orte & Dinge","Haus, Wohnung, Zimmer, Küche, Bad, Büro, Auto, Bus, Zug, Straße, Stadt, Supermarkt, Apotheke, Krankenhaus, Bank, Handy, Computer, Fernseher, Tür, Fenster, Licht, Tisch, Stuhl, Bett, Schlüssel, Geld, Tasche, Jacke, Schuhe, Brille"],
+["Eigenschaften & Richtung","groß, klein, viel, wenig, mehr, weniger, schnell, schön, neu, alt, laut, leise, links, rechts, oben, unten, hier, da, richtig, falsch"],
+["Kleine Wörter","und, oder, aber, nicht, auch, mit, ohne, für, in, auf, zu, von, nach, bei, schon, noch, sehr, alles, nichts, etwas"]];
+const TARGET=10, MAXSEC=10;
+/* 25.10.: Aufnahmen 1–3 der Wörter 1–247 liegen schon in iCloud – neue zählen ab 4, auch wenn der Browser-Speicher leer ist */
+const BASE=3, BASE_MAX_NR=247;
+const $=id=>document.getElementById(id);
+const pad=x=>String(x).padStart(3,"0");
+const slug=s=>s.toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+
+/* Wortliste */
+let words=[],n=1;
+for(const [c,l] of CATS) for(const w of l.split(",")) words.push({nr:n++,word:w.trim(),cat:c});
+for(const o of ls.get("own",[])) words.push({nr:o.nr,word:o.word,cat:"Eigene Wörter"});
+let skipped=new Set(ls.get("skip",[]));
+
+/* Datenbank im Browser */
+const DBP=new Promise((res,rej)=>{const r=indexedDB.open("stimmtrainer",1);
+  r.onupgradeneeded=()=>r.result.createObjectStore("takes",{keyPath:"file"});
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+function store(mode,fn){return DBP.then(db=>new Promise((res,rej)=>{const t=db.transaction("takes",mode);const req=fn(t.objectStore("takes"));
+  t.oncomplete=()=>res(req?req.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);}));}
+let takes=[];
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+
+let undoArmed=false,i=0,rec=null,stream=null,chunks=[],blob=null,blobType="",url=null,t0=0,dur=0,tick=null,audio=null,pending=null;
+
+function msg(t,err){$("msg").textContent=t||"";$("msg").className="msg"+(err?" err":"");}
+let tt;function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,1800);}
+const takesOf=nr=>takes.filter(t=>t.nr===nr).sort((a,b)=>a.take-b.take);
+const baseOf=nr=>nr<=BASE_MAX_NR?BASE:0;
+const countOf=nr=>{const s=new Set(takesOf(nr).map(t=>t.take));for(let k=1;k<=baseOf(nr);k++)s.add(k);return s.size;};
+const nextTake=nr=>Math.max(baseOf(nr),...takesOf(nr).map(t=>t.take),0)+1;
+/* Runden: jedes Wort einmal pro Runde – mehr natürliche Abwechslung als 7× hintereinander */
+const round=()=>{const a=words.filter(w=>!skipped.has(w.nr)).map(w=>countOf(w.nr));return a.length?Math.min(TARGET,Math.min(...a)+1):TARGET;};
+const openAfter=k=>{const r=round();for(let d=1;d<=words.length;d++){const j=(k+d)%words.length;const w=words[j];if(!skipped.has(w.nr)&&countOf(w.nr)<r)return j;}return -1;};
+const firstOpen=()=>{const k=openAfter(words.length-1);return k<0?0:k;};
+
+function render(){
+  const w=words[i], nc=countOf(w.nr), r=round();
+  $("cat").textContent=w.cat;$("nr").textContent="Nr. "+pad(w.nr);$("word").textContent=w.word;
+  $("takes").innerHTML=Array.from({length:TARGET},(_,k)=>`<span class="${k<nc?"on":""}"></span>`).join("");
+  $("takesl").textContent=(skipped.has(w.nr)&&nc<TARGET?"übersprungen · ":"")+`${nc} von ${TARGET} Aufnahmen`;
+  const act=words.filter(x=>!skipped.has(x.nr)),done=act.filter(x=>countOf(x.nr)>=r).length;
+  const allDone=act.every(x=>countOf(x.nr)>=TARGET);
+  $("count").textContent=allDone?`Alle ${TARGET} Runden fertig`:`Runde ${r} von ${TARGET} · ${done} von ${act.length} Wörtern`;
+  $("pos").textContent=`${i+1} / ${words.length}`;
+  $("prog").style.width=(allDone?100:100*done/Math.max(1,act.length))+"%";
+  $("prev").disabled=i===0;$("next").disabled=i===words.length-1;
+  const nNew=takes.filter(t=>!t.exported).length;
+  $("status").textContent=nNew?`${nNew} noch nicht gesichert`:(takes.length?"alles gesichert":"");
+  $("status").className="status"+(nNew?" warn":"");
+  $("prepNew").textContent=nNew?`Neue sichern (${nNew})`:"Neue sichern";
+  $("prepNew").disabled=!nNew;$("prepAll").disabled=!takes.length;
+  $("nfiles").textContent=takes.length;
+  const ul=$("files");ul.textContent="";
+  [...takes].sort((a,b)=>b.date.localeCompare(a.date)).forEach(t=>{
+    const li=document.createElement("li"),s=document.createElement("span");
+    s.textContent=t.file+(t.exported?" ✓":"");if(t.exported)s.className="done";
+    const b=document.createElement("div");b.className="b";
+    const p=document.createElement("button");p.textContent="▶";p.setAttribute("aria-label","Abspielen "+t.file);
+    p.onclick=()=>{audio&&audio.pause();audio=new Audio(URL.createObjectURL(t.blob));audio.play();};
+    const d=document.createElement("button");d.textContent="Löschen";let armed=false;
+    d.onclick=async()=>{if(!armed){armed=true;d.classList.add("armed");d.textContent="Sicher?";setTimeout(()=>{armed=false;d.classList.remove("armed");d.textContent="Löschen";},3000);return;}
+      await store("readwrite",st=>st.delete(t.file));takes=takes.filter(x=>x.file!==t.file);render();toast("Gelöscht");};
+    b.append(p,d);li.append(s,b);ul.append(li);
+  });
+  const last=[...takes].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const u=$("undo");if(!undoArmed){u.hidden=!last;if(last)u.textContent=`Letzte Aufnahme verwerfen (${last.file})`;}
+  ls.set("pos",w.nr);
+}
+function clearTake(){blob=null;if(url)URL.revokeObjectURL(url);url=null;$("play").disabled=$("redo").disabled=$("save").disabled=true;$("timer").textContent="";}
+function gotBlob(b,type){blob=b;blobType=type;url=URL.createObjectURL(b);$("play").disabled=$("redo").disabled=$("save").disabled=false;msg("Anhören, dann speichern oder nochmal aufnehmen.");}
+
+async function getStream(){
+  if(stream&&stream.getAudioTracks().some(t=>t.readyState==="live"))return stream;
+  stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  return stream;
+}
+function pickType(){const c=["audio/mp4","audio/mp4;codecs=mp4a.40.2","audio/webm;codecs=opus","audio/webm"];
+  for(const t of c){try{if(window.MediaRecorder&&MediaRecorder.isTypeSupported(t))return t;}catch(e){}}return "";}
+async function startRec(){
+  if(!navigator.mediaDevices||!window.MediaRecorder){msg("Dieser Browser kann nicht aufnehmen.",true);return;}
+  let s;try{s=await getStream();}catch(e){msg("Kein Zugriff aufs Mikrofon. Bitte in den Einstellungen für Chrome das Mikrofon erlauben.",true);return;}
+  clearTake();chunks=[];
+  const type=pickType();
+  try{rec=type?new MediaRecorder(s,{mimeType:type}):new MediaRecorder(s);}catch(e){rec=new MediaRecorder(s);}
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+  rec.onstop=()=>{clearInterval(tick);dur=(Date.now()-t0)/1000;const t=rec.mimeType||type||"audio/mp4";
+    if(stream){stream.getTracks().forEach(tr=>tr.stop());stream=null;}
+    const b=new Blob(chunks,{type:t});$("rec").classList.remove("on");$("rec").textContent="Aufnahme";rec=null;
+    if(!b.size){clearTake();msg("Die Aufnahme ist leer angekommen. Bitte nochmal aufnehmen.",true);return;}
+    gotBlob(b,t);};
+  rec.start(250);t0=Date.now();
+  $("rec").classList.add("on");$("rec").textContent="Stopp";msg("Sprich jetzt das Wort …");
+  tick=setInterval(()=>{const s=(Date.now()-t0)/1000;$("timer").textContent=s.toFixed(1)+" s";if(s>=MAXSEC&&rec)rec.stop();},100);
+}
+$("rec").onclick=()=>rec?rec.stop():startRec();
+$("play").onclick=()=>{if(url){audio&&audio.pause();audio=new Audio(url);audio.play();}};
+$("redo").onclick=()=>{clearTake();msg("Verworfen – tippe auf Aufnahme.");};
+$("undo").onclick=async()=>{
+  const last=[...takes].sort((a,b)=>b.date.localeCompare(a.date))[0];if(!last)return;const u=$("undo");
+  if(!undoArmed){undoArmed=true;u.classList.add("armed");u.textContent="Wirklich löschen? Nochmal tippen";
+    setTimeout(()=>{undoArmed=false;u.classList.remove("armed");render();},3000);return;}
+  undoArmed=false;u.classList.remove("armed");
+  try{await store("readwrite",st=>st.delete(last.file));}catch(e){msg("Löschen ging nicht.",true);return;}
+  takes=takes.filter(x=>x.file!==last.file);
+  const k=words.findIndex(w=>w.nr===last.nr);if(k>=0)i=k;clearTake();
+  msg(`${last.file} verworfen – jetzt neu aufnehmen.`);render();
+};
+$("save").onclick=async()=>{
+  if(!blob)return;const w=words[i];
+  const take=nextTake(w.nr);
+  const ext=blobType.includes("webm")?"webm":"m4a";
+  const rec_={file:`${pad(w.nr)}_${slug(w.word)}_${take}.${ext}`,nr:w.nr,word:w.word,cat:w.cat,take,ext,type:blobType,
+    date:new Date().toISOString(),dur:Math.round(dur*10)/10,blob,exported:false};
+  try{await store("readwrite",st=>st.put(rec_));}catch(e){msg("Speichern ging nicht – ist der Speicher voll?",true);return;}
+  takes.push(rec_);clearTake();msg("Gespeichert als "+rec_.file);
+  if(countOf(w.nr)>=round()||countOf(w.nr)>=TARGET){const j=openAfter(i);if(j>=0)i=j;}
+  render();
+};
+$("skip").onclick=()=>{skipped.add(words[i].nr);ls.set("skip",[...skipped]);clearTake();msg("Übersprungen.");const j=openAfter(i);if(j>=0)i=j;else if(i<words.length-1)i++;render();};
+$("prev").onclick=()=>{if(i>0){i--;clearTake();msg("");render();}};
+$("next").onclick=()=>{if(i<words.length-1){i++;clearTake();msg("");render();}};
+$("addbtn").onclick=()=>{const v=$("newword").value.trim();if(!v)return;
+  const own=ls.get("own",[]);const nr=Math.max(247,...words.map(w=>w.nr))+1;own.push({nr,word:v});ls.set("own",own);
+  words.push({nr,word:v,cat:"Eigene Wörter"});$("newword").value="";i=words.length-1;clearTake();msg(`„${v}“ hinzugefügt als Nr. ${pad(nr)}.`);render();};
+document.addEventListener("visibilitychange",()=>{if(document.hidden){if(rec)rec.stop();if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}});
+
+/* Sichern als ZIP mit Excel-Tabelle */
+function stamp(){const d=new Date(),p=x=>String(x).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;}
+async function prepare(onlyNew){
+  const list=takes.filter(t=>!onlyNew||!t.exported);if(!list.length){toast("Nichts zu sichern");return;}
+  if(!window.JSZip||!window.XLSX){msg("Sichern braucht kurz Internet. Bitte Seite neu laden.",true);return;}
+  $("prepNew").disabled=$("prepAll").disabled=true;msg("Sicherung wird vorbereitet …");
+  try{
+    const zip=new JSZip(),folder=zip.folder("aufnahmen"),inThis=new Set(list.map(t=>t.file));
+    list.forEach(t=>folder.file(t.file,t.blob));
+    const rows=[...takes].sort((a,b)=>a.nr-b.nr||a.take-b.take).map(t=>({Nr:pad(t.nr),Wort:t.word,Kategorie:t.cat,Aufnahme:t.take,
+      Datei:t.file,Datum:t.date.slice(0,19).replace("T"," "),"Dauer (s)":t.dur,"In dieser Sicherung":inThis.has(t.file)?"ja":""}));
+    const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=[{wch:5},{wch:16},{wch:22},{wch:9},{wch:28},{wch:20},{wch:9},{wch:18}];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Aufnahmen");
+    zip.file("stimmtrainer_tabelle.xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}));
+    zip.file("stimmtrainer_tabelle.csv","﻿"+XLSX.utils.sheet_to_csv(ws,{FS:";"}));
+    const zb=await zip.generateAsync({type:"blob",compression:"STORE"});
+    const name=`stimmtrainer_${stamp()}.zip`;
+    pending={file:new File([zb],name,{type:"application/zip"}),list};
+    $("shareRow").hidden=false;msg(`Bereit: ${list.length} Aufnahmen. Jetzt „In Dateien sichern“ tippen und den Ordner my_new_voice wählen.`);
+  }catch(e){msg("Sicherung ging nicht: "+(e&&e.message||e),true);}
+  render();
+}
+async function markExported(list){for(const t of list){t.exported=true;try{await store("readwrite",st=>st.put(t));}catch(e){}}render();}
+$("prepNew").onclick=()=>prepare(true);
+$("prepAll").onclick=()=>prepare(false);
+$("share").onclick=async()=>{
+  if(!pending)return;const {file,list}=pending;
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file]});pending=null;$("shareRow").hidden=true;await markExported(list);msg("Gesichert. Danke!");toast("Gesichert");return;}
+    catch(e){if(e&&e.name==="AbortError"){msg("Abgebrochen – nichts gesichert.");return;}}
+  }
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=file.name;document.body.append(a);a.click();a.remove();
+  pending=null;$("shareRow").hidden=true;await markExported(list);msg("Als Download gespeichert. Bitte die ZIP aus „Downloads“ nach my_new_voice verschieben.");
+};
+
+/* Start */
+store("readonly",st=>st.getAll()).then(all=>{takes=all||[];const p=ls.get("pos",null);
+  const k=p===null?-1:words.findIndex(w=>w.nr===p);i=(k>=0&&countOf(words[k].nr)<round())?k:firstOpen();render();})
+  .catch(()=>{msg("Der Browser-Speicher ist gesperrt (privater Modus?). Aufnahmen können nicht gespeichert werden.",true);render();});
+})();
+</script>
+</body>
+</html>
