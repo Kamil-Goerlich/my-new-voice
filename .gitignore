@@ -1,0 +1,12 @@
+# Sprachaufnahmen und trainierte Modelle sind persönliche Gesundheitsdaten – nie hochladen
+datensatz_woerter/
+aufnahmen_sicherungen/
+erkenner/
+*.wav
+*.m4a
+*.webm
+*.zip
+*.pt
+*.npz
+__pycache__/
+.DS_Store
